@@ -59,14 +59,14 @@ public class RequestManager implements IHttpResponse {
 		this.mIRequestRelult = iRequestRelult;
 		// 去下载
 		// 获取网络状态
-		int network_type = NetWorkHelper.checkNetWorkConnection(mContext);
+//		int network_type = NetWorkHelper.checkNetWorkConnection(mContext);
 
 		// 如果手机是飞行模式或者是断开网络状态（停止请求返回失败）
-		if (network_type == NetWorkHelper.NETWORK_AIRPLANE || network_type == NetWorkHelper.NETWORK_DISCONNETED) {
-			// 返回失败
-			iRequestRelult.onDownLoadError(0, null, null);
-			return false;
-		}
+//		if (network_type == NetWorkHelper.NETWORK_DISCONNETED) {
+//		//	 返回失败
+//			iRequestRelult.onDownLoadError(0, null, null);
+//			return false;
+//		}
 
 		return true;
 	}

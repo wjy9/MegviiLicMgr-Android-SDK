@@ -14,34 +14,44 @@
 #define DURATION_30DAYS 30
 #define DURATION_365DAYS 365
 
-jstring Java_com_megvii_licensemanager_sdk_jni_NativeLicenseAPI_nativeGetLicense(
-        JNIEnv *env, jobject, jobject ctx, jstring juuid, jint duration,
-        jlong apiName) {
+#define UUID "uuid"
 
-    const char *uuid = env->GetStringUTFChars(juuid, 0);
+jstring Java_com_megvii_licensemanager_sdk_jni_NativeLicenseAPI_nativeGetLicense(
+        JNIEnv *env, jobject, jstring jversion, jint duration) {
+
+    const char *version = env->GetStringUTFChars(jversion, 0);
     const char *context_data = nullptr;
     MG_INT32 context_length = 0;
     MG_LICMGR_DURATION DURATION = MG_LICMGR_DURATION_30DAYS;
     if (duration == DURATION_365DAYS)
         DURATION = MG_LICMGR_DURATION_365DAYS;
     typedef const char *(*pfunc)();
-        mg_licmgr.GetContext(env, ctx, DURATION, uuid, &context_data,
-                             &context_length, (pfunc) (apiName),
+        mg_licmgr.GetContext(DURATION, UUID, &context_data,
+                             &context_length, version,
                              MG_END_ARG);
 
     std::string tmp_str(context_data, context_data + context_length);
-    env->ReleaseStringUTFChars(juuid, uuid);
+    env->ReleaseStringUTFChars(jversion, version);
 
     return env->NewStringUTF(tmp_str.c_str());
 }
 
 jint Java_com_megvii_licensemanager_sdk_jni_NativeLicenseAPI_nativeSetLicense(
-        JNIEnv *env, jobject, jobject ctx, jstring jhandle) {
+        JNIEnv *env, jobject, jstring jhandle) {
     const char *handle = env->GetStringUTFChars(jhandle, 0);
     MG_INT32 handle_leanth = env->GetStringUTFLength(jhandle);
-    MG_RETCODE retcode = mg_licmgr.SetLicence(env, ctx, handle, handle_leanth);
+    LOGE("set license");
+    MG_RETCODE retcode = mg_licmgr.SetLicence(handle, handle_leanth);
 
     env->ReleaseStringUTFChars(jhandle, handle);
 
     return (int) retcode;
+}
+
+jlong Java_com_megvii_licensemanager_sdk_jni_NativeLicenseAPI_getExpireTime(JNIEnv *env, jobject, jstring jversion) {
+    MG_UINT64 len = 0;
+    const char *version = env->GetStringUTFChars(jversion, 0);
+    mg_licmgr.GetExpiretime(version, &len);
+    env->ReleaseStringUTFChars(jversion, version);
+    return static_cast<jlong >(len);
 }

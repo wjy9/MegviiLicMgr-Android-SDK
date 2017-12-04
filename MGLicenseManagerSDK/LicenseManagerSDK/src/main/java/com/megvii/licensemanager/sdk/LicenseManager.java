@@ -1,11 +1,17 @@
 package com.megvii.licensemanager.sdk;
 
 import android.content.Context;
+import android.os.Environment;
+import android.util.Log;
 
 import com.megvii.licensemanager.sdk.jni.NativeLicenseAPI;
 import com.megvii.licensemanager.sdk.util.RequestManager;
 import com.megvii.licensemanager.sdk.util.RequestManager.IHttpRequestRelult;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.regex.Pattern;
@@ -22,6 +28,8 @@ import java.util.regex.Pattern;
  */
 public class LicenseManager {
 
+    private static final String DEBUG_TAG = "LicenseManager";
+
     public static final int DURATION_30DAYS = 30;       ///< 单次授权30天
     public static final int DURATION_365DAYS = 365;     ///< 单次授权365天
 
@@ -30,14 +38,22 @@ public class LicenseManager {
     private long authTimeBufferMillis = 24 * 60 * 60 * 1000;
     private long expirationMillis = 0;
     private static final String US_URL = "https://api-us.faceplusplus.com/sdk/v2/auth";
-    private static final String CN_URL = "https://api-cn.faceplusplus.com/sdk/v2/auth";
+//    private static final String CN_URL = "https://api-cn.faceplusplus.com/sdk/v2/auth";
+//    private static final String CN_URL = "http://api.faceid.com/faceid/v1/sdk/authm";
+
+
+//    private static final String CN_URL = "http://123.56.228.128:8030/device/v1/sdk/authm";
+    private static final String CN_URL = "http://10.201.102.50:8030/device/v1/sdk/authm";
+
+    private String url;
 
     /**
      * @brief 联网授权 SDK 的构造方法
-     * @param[in] context android 上下文
+     * @param[in] context android 上下文t
      */
-    public LicenseManager(Context context) {
+    public LicenseManager(Context context, String url) {
         this.context = context;
+        this.url = url;
     }
 
     /**
@@ -63,6 +79,13 @@ public class LicenseManager {
         this.expirationMillis = expirationMillis;
     }
 
+    public void setExpirationMillis(String version) {
+        this.expirationMillis = NativeLicenseAPI.getExpireTime(version) * 1000L;
+    }
+
+    public long getExpirationMillis(String version) {
+        return NativeLicenseAPI.getExpireTime(version) * 1000L;
+    }
 
     /**
      * @return 用于联网请求的文本信息
@@ -72,13 +95,13 @@ public class LicenseManager {
      * @param[in] durationTime 申请的授权时长（以当前时间开始计算，向后 30 或 365 天）
      * @param[in] apiName API 标识
      */
-    public String getContext(String uuid, int duration, long apiName) {
+    public String getContext(String version, int duration) {
         lastErrorCode = MG_RETCODE_OK;
         if (context == null) {
             lastErrorCode = MG_RETCODE_INVALID_ARGUMENT;
             return null;
         }
-        String content = NativeLicenseAPI.nativeGetLicense(context, uuid, duration, apiName);
+        String content = NativeLicenseAPI.nativeGetLicense(version, duration);
         if (isNumeric(content)) {
             lastErrorCode = Integer.parseInt(content);
             return null;
@@ -99,7 +122,31 @@ public class LicenseManager {
             return false;
         }
 
-        lastErrorCode = NativeLicenseAPI.nativeSetLicense(context, content);
+//        String name = String.format("response.txt");
+//        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getPath(), "authresult");
+//        if (!file.exists())
+//            file.mkdir();
+//        String filePath = file.getPath() + "/" + name;
+//        file = new File(filePath);
+//        BufferedWriter out = null;
+//        try {
+//            file.createNewFile();
+//            out = new BufferedWriter(new FileWriter(file));
+//            out.write(content);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } finally {
+//            try {
+//                if (out != null) {
+//                    out.close();
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+
+        lastErrorCode = NativeLicenseAPI.nativeSetLicense(content);
+        Log.d(DEBUG_TAG, String.format("setLicense return: %d", lastErrorCode));
 
         if (lastErrorCode == MG_RETCODE_OK)
             return true;
@@ -140,35 +187,72 @@ public class LicenseManager {
      * @param[in] isCN 是否在中国地区
      * @param[out] takeLicenseCallback 授权成功或者失败返回
      */
-    public void takeLicenseFromNetwork(String uuid, String apiKey, String apiSecret, long apiName, int durationTime,
-                                       String sdkType, String duration, boolean isCN,
+    public void takeLicenseFromNetwork(String sdkVersion, int durationTime, String duration, boolean isCN,
                                        final TakeLicenseCallback takeLicenseCallback) {
-        boolean isAuthSuccess = needToTakeLicense();
-        if (isAuthSuccess) {
-            if (takeLicenseCallback != null)
-                takeLicenseCallback.onSuccess();
-        } else {
-            String content = getContext(uuid, durationTime, apiName);
-            String errorStr = getLastError();
+        // TODO actually duratiohn is not useful now, the duration is up to server
+//        boolean isAuthSuccess = needToTakeLicense();
+//        if (isAuthSuccess) {
+//            if (takeLicenseCallback != null)
+//                takeLicenseCallback.onSuccess();
+//        } else {
+        String content = getContext(sdkVersion, durationTime);
+
+//        String name = String.format("result.txt");
+//        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getPath(), "authresult");
+//        if (!file.exists())
+//            file.mkdir();
+//        String filePath = file.getPath() + "/" + name;
+//        file = new File(filePath);
+//        BufferedWriter out = null;
+//        try {
+//            file.createNewFile();
+//            out = new BufferedWriter(new FileWriter(file));
+//            out.write(content);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } finally {
+//            try {
+//                if (out != null) {
+//                    out.close();
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+
+//            String errorStr = getLastError();
             RequestManager requestManager = new RequestManager(context);
             String params = "";
             try {
-                params = "api_key=" + URLEncoder.encode(apiKey, "utf-8") + "&api_secret="
-                        + URLEncoder.encode(apiSecret, "utf-8") + "&auth_msg=" + URLEncoder.encode(content, "utf-8")
-                        + "&sdk_type=" + URLEncoder.encode(sdkType, "utf-8")
-                        + "&auth_duration=" + URLEncoder.encode(duration, "utf-8");
+                params = "auth_msg=" + URLEncoder.encode(content, "UTF-8")
+                        + "&auth_interval="
+                        + URLEncoder.encode(duration, "UTF-8");
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
             HashMap<String, String> map = new HashMap<String, String>();
-            map.put("Content-Type", "application/json");
+            map.put("Content-Type", "application/x-www-form-urlencoded");
             map.put("Charset", "UTF-8");
+            map.put("Perm", "ability:MegviiFaceppv2#30#DETECT+TRACK+TRACKING_FAST+TRACKING_ROBUST+POSE3D+EXTRACT_FEATURE");
 
-            requestManager.postRequest(isCN ? CN_URL : US_URL, params.getBytes(), null, new IHttpRequestRelult() {
+//            int l = params.length();
+//            int idx = 0;
+//            while (l > 0) {
+//                if (l > 500) {
+//                    Log.d(DEBUG_TAG, String.format("%s", params.substring(idx, idx + 500 - 1)));
+//                    l -= 500;
+//                    idx += 500;
+//                } else {
+//                    Log.d(DEBUG_TAG, String.format("%s", params.substring(idx, idx + l - 1)));
+//                    l = 0;
+//                }
+//            }
+            requestManager.postRequest(this.url, params.getBytes(), map, new IHttpRequestRelult() {
                 @Override
                 public void onDownLoadComplete(int code, byte[] date, HashMap<String, String> headers) {
                     String successStr = new String(date);
+                    Log.d(DEBUG_TAG, String.format("license server return: %s", successStr));
                     boolean isSuccess = setLicense(successStr);
                     if (isSuccess) {// 授权成功
                         if (takeLicenseCallback != null)
@@ -185,7 +269,7 @@ public class LicenseManager {
                         takeLicenseCallback.onFailed(code, date);
                 }
             });
-        }
+//        }
     }
 
     /**
